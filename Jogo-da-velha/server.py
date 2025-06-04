@@ -2,32 +2,20 @@ import socket
 import pickle
 import time
 
+# Criação do socket, configuracao livre de ip host e definicao da porta
 s = socket.socket()
 host = ""
 port = 9999
 matrix = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-# print(matrix)
 
 playerOne = 1
 playerTwo = 2
 
+# Lista de sockets e enderecos
 playerConn = list()
 playerAddr = list()       
 
-#server side validation is disabled to reduce latency
-'''
-def validate_input(x, y, conn):
-    if x > 3 or y > 3:
-        print("\nOut of bound! Enter again...\n")
-        conn.send("Error".encode())
-        return False
-    elif matrix[x][y] != 0:
-        print("\nAlready entered! Try again...\n")
-        conn.send("Error".encode())
-        return False
-    return True
-'''
-
+# Funcao que recebe uma jogada dependendo do estado do currentplayer
 def get_input(currentPlayer):
     if currentPlayer == playerOne:
         player = "Player One's Turn"
@@ -51,8 +39,8 @@ def get_input(currentPlayer):
         conn.send("Error".encode())
         print("Error occured! Try again..")
 
+# Funcao que verifica vencedor 
 def check_rows():
-    # print("Checking rows")
     result = 0
     for i in range(3):
         if matrix[i][0] == matrix[i][1] and matrix[i][1] == matrix[i][2]:
@@ -61,8 +49,8 @@ def check_rows():
                 break
     return result
 
+# Funcao que verifica vencedor
 def check_columns():
-    # print("Checking cols")
     result = 0
     for i in range(3):
         if matrix[0][i] == matrix[1][i] and matrix[1][i] == matrix[2][i]:
@@ -71,8 +59,8 @@ def check_columns():
                 break
     return result
 
+# Funcao que verifica vencedor
 def check_diagonals():
-    # print("Checking diagonals")
     result = 0
     if matrix[0][0] == matrix[1][1] and matrix[1][1] == matrix[2][2]:
         result = matrix[0][0]
@@ -80,6 +68,7 @@ def check_diagonals():
         result = matrix[0][2]
     return result
 
+# Funcao que define o vencedor
 def check_winner():
     result = 0
     result = check_rows()
@@ -89,25 +78,21 @@ def check_winner():
         result = check_diagonals()
     return result
 
-#Socket program
+# Funcao que inicia o servidor e escuta conexoes
 def start_server():
-    #Binding to port 9999
-    #Only two clients can connect 
     try:
         s.bind((host, port))
-        print("Tic Tac Toe server started \nBinding to port", port)
+        print("Server iniciado")
         s.listen(2) 
         accept_players()
     except socket.error as e:
-        print("Server binding error:", e)
+        print("Erro de conexao:", e)
     
-
-#Accept player
-#Send player number
+# Funcao de verificacao dos players e inicio do jogo
 def accept_players():
     try:
-        for i in range(2):
-            conn, addr = s.accept()
+        for i in range(2): # So aceita 2 players
+            conn, addr = s.accept() # Aceita a conexao
             msg = "<<< You are player {} >>>".format(i+1)
             conn.send(msg.encode())
 
@@ -125,9 +110,10 @@ def accept_players():
     except Exception as e:
         print("Error occurred:", e)
 
+# Funcao que contra os turnos, jogadas, tabuleiro, verifica o vencedor e encerra o jogo
 def start_game():
     result = 0
-    i = 0
+    i = 0         # Turnos
     while result == 0 and i < 9 :
         if (i%2 == 0):
             get_input(playerOne)
@@ -135,8 +121,7 @@ def start_game():
             get_input(playerTwo)
         result = check_winner()
         i = i + 1
-        # print("Current count", i ,result == 0 and i < 9, "Result = ", result)
-    
+        
     send_common_msg("Over")
 
     if result == 1:

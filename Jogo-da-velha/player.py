@@ -3,8 +3,9 @@ import socket
 import time
 import threading
 
+# Define socket e porta
 s = socket.socket()
-host = input("Enter the server IP:")
+host = input("IP do servidor:")
 port = 9999
 
 playerOne = 1
@@ -12,33 +13,26 @@ playerOneColor = (255, 0, 0)
 playerTwo = 2
 playerTwoColor = (0, 0, 255)
 bottomMsg = ""
-msg = "Waiting for peer"
+msg = "Esperando pareamento"
 currentPlayer = 0
-xy = (-1, -1)
-allow = 0 #allow handling mouse events
+xy = (-1, -1) # Armazena a coordenada da jogada
+allow = 0     # Controle de turno
 matrix = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
-#Create worker threads
+# Funcao que cria as threads
 def create_thread(target):
-    t = threading.Thread(target = target) #argument - target function
-    t.daemon = True
-    t.start()
+    t = threading.Thread(target = target) # Cria a thread
+    t.daemon = True                       # Encerra a thread quando morrer
+    t.start()                             # Inicializa a thread
 
-#initialize
 pygame.init()
 
 width = 600
 height = 550
 screen = pygame.display.set_mode((width, height))
-
-#set title
-pygame.display.set_caption("Tic Tac Toe")
-
-#set icon
+pygame.display.set_caption("Jogo da velha")
 icon = pygame.image.load("tictactoe.png")
 pygame.display.set_icon(icon)
-
-#fonts
 bigfont = pygame.font.Font('freesansbold.ttf', 64)
 smallfont = pygame.font.Font('freesansbold.ttf', 32)
 backgroundColor = (255, 255, 255)
@@ -53,10 +47,8 @@ def buildScreen(bottomMsg, string, playerColor = subtitleColor):
     elif "Two" in string or "2" in string:
         playerColor = playerTwoColor
 
-    #vertical lines
     pygame.draw.line(screen, lineColor, (250-2, 150), (250-2, 450), 4)
     pygame.draw.line(screen, lineColor, (350-2, 150), (350-2, 450), 4)
-    #horizontal lines
     pygame.draw.line(screen, lineColor, (150, 250-2), (450, 250-2), 4)
     pygame.draw.line(screen, lineColor, (150, 350-2), (450, 350-2), 4)
 
@@ -68,7 +60,6 @@ def buildScreen(bottomMsg, string, playerColor = subtitleColor):
 
 def centerMessage(msg, color = titleColor):
     pos = (100, 480)
-    # screen.fill(backgroundColor)
     if "One" in msg or "1" in msg:
         color = playerOneColor
     elif "Two" in msg or "2" in msg:
@@ -82,10 +73,8 @@ def printCurrent(current, pos, color):
 
 def printMatrix(matrix):
     for i in range(3):
-        #When row increases, y changes
         y = int((i + 1.75) * 100) 
         for j in range(3):
-            #When col increases, x changes
             x =  int((j + 1.75) * 100)
             current = " "
             color = titleColor
@@ -114,22 +103,21 @@ def handleMouseEvent(pos):
     if(x < 150 or x > 450 or y < 150 or y > 450):
         xy = (-1, -1)
     else:
-        # When x increases, column changes
         col = int(x/100 - 1.5)
-        # When y increases, row changes
         row = int(y/100 - 1.5)
         print("({}, {})".format(row,col))
         if validate_input(row, col):
             matrix[row][col] = currentPlayer
             xy = (row,col)
-
+            
+# Funcao que conecta cliente e servidor e inicia o jogo
 def start_player():
     global currentPlayer
     global bottomMsg
     try:
-        s.connect((host, port))
-        print("Connected to :", host, ":", port)
-        recvData = s.recv(2048 * 10)
+        s.connect((host, port)) # Abre a conexao ip host e porta
+        print("Conectado a :", host, ":", port)
+        recvData = s.recv(2048 * 10) 
         bottomMsg = recvData.decode()
         if "1" in bottomMsg:
             currentPlayer = 1
@@ -145,7 +133,7 @@ def start_game():
     global msg
     global matrix
     global bottomMsg
-    create_thread(accept_msg)
+    create_thread(accept_msg) # Cria a Thread de conexao
     while running: 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -169,12 +157,12 @@ def accept_msg():
     global allow
     global xy
     while True:
-        try: 
+        try:  # Aguarda mensagem do servidor e decodifica byte/string
             recvData = s.recv(2048 * 10)
             recvDataDecode = recvData.decode()
             buildScreen(bottomMsg, recvDataDecode)
 
-            if recvDataDecode == "Input":
+            if recvDataDecode == "Input": # Informa o turno
                 failed = 1
                 allow = 1
                 xy = (-1, -1)
@@ -186,18 +174,18 @@ def accept_msg():
                             failed = 0
                             allow = 0
                     except:
-                        print("Error occured....Try again")
+                        print("Erro")
 
             elif recvDataDecode == "Error":
-                print("Error occured! Try again..")
+                print("Tente novamente")
             
-            elif recvDataDecode == "Matrix":
+            elif recvDataDecode == "Matrix": # Atualiza o tabuleiro
                 print(recvDataDecode)
                 matrixRecv = s.recv(2048 * 100)
                 matrixRecvDecoded = matrixRecv.decode("utf-8")
                 matrix = eval(matrixRecvDecoded)
 
-            elif recvDataDecode == "Over":
+            elif recvDataDecode == "Over": # Atualiza vencedor
                 msgRecv = s.recv(2048 * 100)
                 msgRecvDecoded = msgRecv.decode("utf-8")
                 bottomMsg = msgRecvDecoded
